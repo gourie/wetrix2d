@@ -1,18 +1,20 @@
 from vpython import *
+import random
 
 # config
 PROEFBUIS_LENGTE = 5
 PROEFBUIS_MAXLEVEL = 10
 
-class Wetrix(object):
 
-    def __init__(self, title = "Wetrix2d", width=1200, height=600, bg_color=color.black):
+class Wetrix2D(object):
+
+    def __init__(self, title="Wetrix2d", width=1200, height=600, bg_color=color.black):
         self.scene = canvas(title=title, width=width, height=height,
                             center=vector(0, 0, 0) + vector(width, height, 0) / 2.0, background=bg_color)
         self.box_eenheid = 10
         self.bodem_hoogtes = [0] * int(self.scene.width / self.box_eenheid)
         self.water_niveaus = [0] * int(self.scene.width / self.box_eenheid)
-        self.blokken = []
+        self.blokken = [L1upper(), L1downer(), L2upper(), L2downer()]
         self.proefbuis = Proefbuis(PROEFBUIS_MAXLEVEL)
 
     def toon_start_scherm(self):
@@ -23,18 +25,30 @@ class Wetrix(object):
         self.bodem_hoogtes = [1] * len(self.bodem_hoogtes)
 
         # proefbuis
+
         for i in range(PROEFBUIS_LENGTE):
-            box(pos=vector(i * self.box_eenheid, self.scene.height, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
-                color=color.orange)
+            box(pos=vector(i * self.box_eenheid, self.scene.height, 0), length=self.box_eenheid,
+                height=self.box_eenheid, width=1,
+                color=color.white)
 
-        # start-blok > alpha (just show one unit)
-        self.toon_blok(Blok(color.blue, [(self.scene.width / 2.0, self.scene.height)]))
+        # startblok > alpha (just show one unit)
+        self.toon_blok(self.random_kies_blok(), (self.scene.width / 2, self.scene.height))
 
-    def toon_blok(self, blok_object):
+    def toon_blok(self, blok_object, scherm_positie):
+        assert 0 <= scherm_positie[0] <= self.scene.width and 0 <= scherm_positie[1] <= self.scene.height
+        x_shift, y_shift = self.bereken_verplaatsing(scherm_positie, blok_object)
         for pos in blok_object.posities:
-            box(pos=vector(pos[0], pos[1], 0), length=self.box_eenheid, height=self.box_eenheid,
-                width=1, color=blok_object.kleur)
-        self.blokken.append(blok_object)
+            box(pos=vector(pos[0] * self.box_eenheid + scherm_positie[0] - x_shift,
+                           pos[1] * self.box_eenheid + scherm_positie[1] - y_shift, 0), length=self.box_eenheid,
+                height=self.box_eenheid, width=1, color=blok_object.kleur)
+        blok_object.print_name()
+
+    def random_kies_blok(self):
+        return random.choice(self.blokken)
+
+    def bereken_verplaatsing(self, scherm_positie, blok_object):
+        return max((scherm_positie[0] + blok_object.breedte * self.box_eenheid) - self.scene.width, 0), max(
+            (scherm_positie[1] + blok_object.hoogte * self.box_eenheid) - self.scene.height, 0)
 
 
 class Proefbuis(object):
@@ -45,37 +59,119 @@ class Proefbuis(object):
 
 
 class Blok(object):
+    """ Blok met gegeven kleur, breedte, hoogte en dikte
 
-    def __init__(self, kleur, posities_list):
+    - posities: list, relatieve posities van de bouwblokjes (vierkantjes)
+    """
+
+    def __init__(self, kleur, breedte, hoogte, dikte=1):
+        self.posities = None
         self.kleur = kleur
-        self.posities = posities_list
-        self.aantal_eenheden = len(self.posities)
+        self.breedte = breedte
+        self.hoogte = hoogte
+        self.dikte = dikte
+
+    def print_name(self):
+        return self._print_name()
 
 
-class Upper(Blok):
+class L1(Blok):
+    """
+    Letter L rechtopstaand
+    """
 
-    def __init__(self, kleur='green'):
-        Blok.__init__(self, kleur)
+    def __init__(self, kleur, breedte=3, hoogte=5):
+        Blok.__init__(self, kleur, breedte, hoogte)
+        self.posities = []
+        self.posities.extend([(i, j) for i in range(breedte) for j in range(self.dikte)])
+        self.posities.extend([(i, j) for i in range(self.dikte) for j in range(self.dikte, hoogte)])
 
-
-class Downer(Blok):
-
-    def __init__(self, kleur='red'):
-        Blok.__init__(self, kleur)
-
-
-class Water(Blok):
-
-    def __init__(self, kleur='blue'):
-        Blok.__init__(self, kleur)
+    def _print_name(self):
+        print("Letter L rechtopstaand")
 
 
-class Vuur(Blok):
+class L1upper(L1):
+    """
+    Letter L rechtopstaand, upper = groen
+    """
 
-    def __init__(self, kleur='yellow'):
-        Blok.__init__(self, kleur)
+    def __init__(self, kleur=color.green):
+        L1.__init__(self, kleur)
 
 
+class L1downer(L1):
+    """
+    Letter L rechtopstaand, downer = rood
+    """
 
-wetrix2d = Wetrix()
+    def __init__(self, kleur=color.red):
+        L1.__init__(self, kleur)
+
+
+class L2(Blok):
+    """
+    Letter L omgevallen naar links
+    """
+
+    def __init__(self, kleur, breedte=3, hoogte=5):
+        Blok.__init__(self, kleur, hoogte, breedte)
+        self.posities = []
+        self.posities.extend([(i, j) for i in range(hoogte) for j in range(self.dikte)])
+        self.posities.extend([(i, j) for i in range(hoogte - self.dikte, hoogte) for j in range(self.dikte, breedte)])
+
+    def _print_name(self):
+        print("Letter L omgevallen naar links")
+
+
+class L2upper(L2):
+    """
+    Letter L omgevallen naar links, upper = groen
+    """
+
+    def __init__(self, kleur=color.green):
+        L2.__init__(self, kleur)
+
+
+class L2downer(L2):
+    """
+    Letter L omgevallen naar links, downer = rood
+    """
+
+    def __init__(self, kleur=color.red):
+        L2.__init__(self, kleur)
+
+
+# class Blok(object):
+#
+#     def __init__(self, kleur, posities_list):
+#         self.kleur = kleur
+#         self.posities = posities_list
+#         self.aantal_eenheden = len(self.posities)
+#
+#
+# class Upper(Blok):
+#
+#     def __init__(self, kleur='green'):
+#         Blok.__init__(self, kleur)
+#
+#
+# class Downer(Blok):
+#
+#     def __init__(self, kleur='red'):
+#         Blok.__init__(self, kleur)
+#
+#
+# class Water(Blok):
+#
+#     def __init__(self, kleur='blue'):
+#         Blok.__init__(self, kleur)
+#
+#
+# class Vuur(Blok):
+#
+#     def __init__(self, kleur='yellow'):
+#         Blok.__init__(self, kleur)
+
+
+wetrix2d = Wetrix2D()
 wetrix2d.toon_start_scherm()

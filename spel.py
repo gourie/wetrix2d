@@ -15,7 +15,7 @@ class Wetrix2D(object):
         self.box_eenheid = 10
         self.bodem_hoogtes = [0] * int(self.scene.width / self.box_eenheid)
         self.water_niveaus = [0] * int(self.scene.width / self.box_eenheid)
-        self.blokken = [L1upper(), L1downer(), L2upper(), L2downer()]
+        self.blokken = [L2upper(), L2downer()]  #L1upper(), L1downer(),
         self.proefbuis = Proefbuis(PROEFBUIS_MAXLEVEL)
         self.snelheid_in_eenheden_per_seconde = 10
 
@@ -35,26 +35,18 @@ class Wetrix2D(object):
             blok_raakt_bodem_list = self.blok_raakt_bodem(box_list)
             if len(blok_raakt_bodem_list) != 0:
                 # update bodemhoogtes
-                for index, x_pos in enumerate(blok_raakt_bodem_list):
-                    self.bodem_hoogtes[int(x_pos / self.box_eenheid)] += int(start_blok.hoogtes_voor_elke_x_pos[index])
+                for x_pos in blok_raakt_bodem_list:
+                    self.bodem_hoogtes[int(x_pos[0] / self.box_eenheid)] += int(start_blok.hoogtes_voor_elke_x_pos[x_pos[1]])
                 # plaats nieuw startblok
                 start_blok = self.random_kies_blok()
                 box_list = self.toon_blok(start_blok, (self.scene.width / 2, self.scene.height))
 
     def blok_raakt_bodem(self, blok_box_list):
-        # bodem_hoogtes_onder_blok = self._bodem_hoogtes_onder_blok(blok_box_list)
         res = []
-        for box_item in blok_box_list:
+        for index, box_item in enumerate(blok_box_list):
             if box_item.pos.y / self.box_eenheid == self.bodem_hoogtes[int(box_item.pos.x / self.box_eenheid)]:
-                res.append(box_item.pos.x)
+                res.append((box_item.pos.x, index))
         return res
-
-    # def _blok_laagste_posities(self, blok_box_list):
-    #     y_pos_list = [box_item.pos.y for box_item in blok_box_list]
-    #     return np.min(y_pos_list), y_pos_list == np.min(y_pos_list)
-
-    def _bodem_hoogtes_onder_blok(self, blok_box_list):
-        return [self.bodem_hoogtes[int(box_item.pos.x / self.box_eenheid)] for box_item in blok_box_list]
 
     def toon_start_scherm(self):
         # bodem

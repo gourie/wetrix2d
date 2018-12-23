@@ -1,3 +1,4 @@
+import numpy as np
 from vpython import *
 import random
 
@@ -16,31 +17,53 @@ class Wetrix2D(object):
         self.water_niveaus = [0] * int(self.scene.width / self.box_eenheid)
         self.blokken = [L1upper(), L1downer(), L2upper(), L2downer()]
         self.proefbuis = Proefbuis(PROEFBUIS_MAXLEVEL)
+        self.snelheid_in_eenheden_per_seconde = 10
 
     def main_loop(self):
 
         self.toon_start_scherm()
 
         # initialize startblok
-        # delta_t = 0.005
-        # t = 0
         box_list = self.toon_blok(self.random_kies_blok(), (self.scene.width / 2, self.scene.height))
-        for box_item in box_list:
-            box_item.velocity = vector(0, self.box_eenheid, 0)
 
         while not self.proefbuis.is_vol():
-            rate(2)    # execute loop 50x per second, equivalent to sleep(0.02)
-            # beweeg startblok
+            rate(self.snelheid_in_eenheden_per_seconde)
+            # beweeg startblok naar beneden
             for box_item in box_list:
-                box_item.pos = box_item.pos - box_item.velocity
+                box_item.pos = box_item.pos - vector(0, self.box_eenheid, 0)
+            if len(self.blok_raakt_bodem(box_list)) != 0:
+                break
 
+    def blok_raakt_bodem(self, blok_box_list):
+        # bodem_hoogtes_onder_blok = self._bodem_hoogtes_onder_blok(blok_box_list)
+        res = []
+        for box_item in blok_box_list:
+            if box_item.pos.y / self.box_eenheid == self.bodem_hoogtes[int(box_item.pos.x / self.box_eenheid)]:
+                res.append(box_item.pos.x)
+        return res
+
+    # def _blok_laagste_posities(self, blok_box_list):
+    #     y_pos_list = [box_item.pos.y for box_item in blok_box_list]
+    #     return np.min(y_pos_list), y_pos_list == np.min(y_pos_list)
+
+    def _bodem_hoogtes_onder_blok(self, blok_box_list):
+        return [self.bodem_hoogtes[int(box_item.pos.x / self.box_eenheid)] for box_item in blok_box_list]
 
     def toon_start_scherm(self):
         # bodem
         for i in range(len(self.bodem_hoogtes)):
-            box(pos=vector(i * self.box_eenheid, 0, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
-                color=color.gray(0.5))
+            if 60 <= i < 61:
+                box(pos=vector(i * self.box_eenheid, 0, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
+                    color=color.gray(0.5))
+                box(pos=vector(i * self.box_eenheid, self.box_eenheid, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
+                    color=color.gray(0.5))
+            else:
+                box(pos=vector(i * self.box_eenheid, 0, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
+                    color=color.gray(0.5))
         self.bodem_hoogtes = [1] * len(self.bodem_hoogtes)
+        self.bodem_hoogtes[60] = 2
+        # self.bodem_hoogtes[61] = 2
+        # self.bodem_hoogtes[62] = 2
 
         # proefbuis
 

@@ -24,15 +24,22 @@ class Wetrix2D(object):
         self.toon_start_scherm()
 
         # initialize startblok
-        box_list = self.toon_blok(self.random_kies_blok(), (self.scene.width / 2, self.scene.height))
+        start_blok = self.random_kies_blok()
+        box_list = self.toon_blok(start_blok, (self.scene.width / 2, self.scene.height))
 
         while not self.proefbuis.is_vol():
             rate(self.snelheid_in_eenheden_per_seconde)
             # beweeg startblok naar beneden
             for box_item in box_list:
                 box_item.pos = box_item.pos - vector(0, self.box_eenheid, 0)
-            if len(self.blok_raakt_bodem(box_list)) != 0:
-                break
+            blok_raakt_bodem_list = self.blok_raakt_bodem(box_list)
+            if len(blok_raakt_bodem_list) != 0:
+                # update bodemhoogtes
+                for index, x_pos in enumerate(blok_raakt_bodem_list):
+                    self.bodem_hoogtes[int(x_pos / self.box_eenheid)] += int(start_blok.hoogtes_voor_elke_x_pos[index])
+                # plaats nieuw startblok
+                start_blok = self.random_kies_blok()
+                box_list = self.toon_blok(start_blok, (self.scene.width / 2, self.scene.height))
 
     def blok_raakt_bodem(self, blok_box_list):
         # bodem_hoogtes_onder_blok = self._bodem_hoogtes_onder_blok(blok_box_list)
@@ -52,21 +59,11 @@ class Wetrix2D(object):
     def toon_start_scherm(self):
         # bodem
         for i in range(len(self.bodem_hoogtes)):
-            if 60 <= i < 61:
-                box(pos=vector(i * self.box_eenheid, 0, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
-                    color=color.gray(0.5))
-                box(pos=vector(i * self.box_eenheid, self.box_eenheid, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
-                    color=color.gray(0.5))
-            else:
-                box(pos=vector(i * self.box_eenheid, 0, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
+            box(pos=vector(i * self.box_eenheid, 0, 0), length=self.box_eenheid, height=self.box_eenheid, width=1,
                     color=color.gray(0.5))
         self.bodem_hoogtes = [1] * len(self.bodem_hoogtes)
-        self.bodem_hoogtes[60] = 2
-        # self.bodem_hoogtes[61] = 2
-        # self.bodem_hoogtes[62] = 2
 
         # proefbuis
-
         for i in range(PROEFBUIS_LENGTE):
             box(pos=vector(i * self.box_eenheid, self.scene.height, 0), length=self.box_eenheid,
                 height=self.box_eenheid, width=1,
@@ -140,6 +137,8 @@ class L1(Blok):
         self.posities = []
         self.posities.extend([(i, j) for i in range(breedte) for j in range(self.dikte)])
         self.posities.extend([(i, j) for i in range(self.dikte) for j in range(self.dikte, hoogte)])
+        self.hoogtes_voor_elke_x_pos = [np.sum(np.array(self.posities)[..., 0] == x_pos) for x_pos in
+                                        np.unique(np.array(self.posities)[..., 0])]
 
     def _print_name(self):
         print("Letter L rechtopstaand")
@@ -173,6 +172,8 @@ class L2(Blok):
         self.posities = []
         self.posities.extend([(i, j) for i in range(hoogte) for j in range(self.dikte)])
         self.posities.extend([(i, j) for i in range(hoogte - self.dikte, hoogte) for j in range(self.dikte, breedte)])
+        self.hoogtes_voor_elke_x_pos = [np.sum(np.array(self.posities)[..., 0] == x_pos) for x_pos in
+                                        np.unique(np.array(self.posities)[..., 0])]
 
     def _print_name(self):
         print("Letter L omgevallen naar links")

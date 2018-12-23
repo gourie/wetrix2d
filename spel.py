@@ -15,9 +15,10 @@ class Wetrix2D(object):
         self.box_eenheid = 10
         self.bodem_hoogtes = [0] * int(self.scene.width / self.box_eenheid)
         self.water_niveaus = [0] * int(self.scene.width / self.box_eenheid)
-        self.blokken = [L2upper(), L2downer()]  #L1upper(), L1downer(),
+        self.blokken = [L1upper(), L1downer(), L2upper(), L2downer()]
         self.proefbuis = Proefbuis(PROEFBUIS_MAXLEVEL)
-        self.snelheid_in_eenheden_per_seconde = 10
+        self.snelheid_in_eenheden_per_seconde = 5
+        self.key_shift = 0
 
     def main_loop(self):
 
@@ -27,11 +28,14 @@ class Wetrix2D(object):
         start_blok = self.random_kies_blok()
         box_list = self.toon_blok(start_blok, (self.scene.width / 2, self.scene.height))
 
+        self.scene.bind('keydown', self.key_input)
+
         while not self.proefbuis.is_vol():
             rate(self.snelheid_in_eenheden_per_seconde)
+
             # beweeg startblok naar beneden
             for box_item in box_list:
-                box_item.pos = box_item.pos - vector(0, self.box_eenheid, 0)
+                box_item.pos = box_item.pos - vector(self.key_shift * self.box_eenheid, self.box_eenheid, 0)
             blok_raakt_bodem_list = self.blok_raakt_bodem(box_list)
             if len(blok_raakt_bodem_list) != 0:
                 # update bodemhoogtes
@@ -40,6 +44,16 @@ class Wetrix2D(object):
                 # plaats nieuw startblok
                 start_blok = self.random_kies_blok()
                 box_list = self.toon_blok(start_blok, (self.scene.width / 2, self.scene.height))
+
+            self.key_shift = 0
+
+    def key_input(self, evt):
+        if evt.key == "right":
+            self.key_shift = -1
+            print("right key clicked")
+        elif evt.key == "left":
+            self.key_shift = 1
+            print("left key clicked")
 
     def blok_raakt_bodem(self, blok_box_list):
         res = []

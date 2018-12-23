@@ -17,6 +17,24 @@ class Wetrix2D(object):
         self.blokken = [L1upper(), L1downer(), L2upper(), L2downer()]
         self.proefbuis = Proefbuis(PROEFBUIS_MAXLEVEL)
 
+    def main_loop(self):
+
+        self.toon_start_scherm()
+
+        # initialize startblok
+        # delta_t = 0.005
+        # t = 0
+        box_list = self.toon_blok(self.random_kies_blok(), (self.scene.width / 2, self.scene.height))
+        for box_item in box_list:
+            box_item.velocity = vector(0, self.box_eenheid, 0)
+
+        while not self.proefbuis.is_vol():
+            rate(2)    # execute loop 50x per second, equivalent to sleep(0.02)
+            # beweeg startblok
+            for box_item in box_list:
+                box_item.pos = box_item.pos - box_item.velocity
+
+
     def toon_start_scherm(self):
         # bodem
         for i in range(len(self.bodem_hoogtes)):
@@ -31,17 +49,16 @@ class Wetrix2D(object):
                 height=self.box_eenheid, width=1,
                 color=color.white)
 
-        # startblok > alpha (just show one unit)
-        self.toon_blok(self.random_kies_blok(), (self.scene.width / 2, self.scene.height))
-
     def toon_blok(self, blok_object, scherm_positie):
         assert 0 <= scherm_positie[0] <= self.scene.width and 0 <= scherm_positie[1] <= self.scene.height
         x_shift, y_shift = self.bereken_verplaatsing(scherm_positie, blok_object)
+        box_list = []
         for pos in blok_object.posities:
-            box(pos=vector(pos[0] * self.box_eenheid + scherm_positie[0] - x_shift,
-                           pos[1] * self.box_eenheid + scherm_positie[1] - y_shift, 0), length=self.box_eenheid,
-                height=self.box_eenheid, width=1, color=blok_object.kleur)
+            box_list.append(box(pos=vector(pos[0] * self.box_eenheid + scherm_positie[0] - x_shift,
+                                           pos[1] * self.box_eenheid + scherm_positie[1] - y_shift, 0),
+                                length=self.box_eenheid, height=self.box_eenheid, width=1, color=blok_object.kleur))
         blok_object.print_name()
+        return box_list
 
     def random_kies_blok(self):
         return random.choice(self.blokken)
@@ -55,8 +72,23 @@ class Proefbuis(object):
 
     def __init__(self, max_level):
         self.max_level = max_level
-        self.current_level = 0
+        self._current_level = 0
 
+    def is_vol(self):
+        return self._current_level >= self.max_level
+
+    @property
+    def current_level(self):
+        return self._current_level
+
+    # @current_level.setter
+    # def current_level(self, value):
+    #     assert isinstance(value, int)
+    #     self._current_level = value
+
+    def update_current_level(self, incremental_value):
+        assert isinstance(incremental_value, int) and incremental_value > 0
+        self._current_level += incremental_value
 
 class Blok(object):
     """ Blok met gegeven kleur, breedte, hoogte en dikte
@@ -174,4 +206,4 @@ class L2downer(L2):
 
 
 wetrix2d = Wetrix2D()
-wetrix2d.toon_start_scherm()
+wetrix2d.main_loop()

@@ -28,6 +28,10 @@ class Wetrix2D(object):
         start_blok = self.random_kies_blok()
         box_list = self.toon_blok(start_blok, (self.scene.width / 2, self.scene.height))
 
+        # initializeer positioneringsblok
+        positionerings_blok = BalkPlat(kleur=color.yellow, breedte=start_blok.breedte, hoogte=1)
+        box_list_positionerings_blok = self.toon_blok(positionerings_blok, (np.min([box_i.pos.x for box_i in box_list]), -1 * self.box_eenheid))
+
         self.scene.bind('keydown', self.key_input)
 
         while not self.proefbuis.is_vol():
@@ -36,6 +40,8 @@ class Wetrix2D(object):
             # beweeg startblok naar beneden
             for box_item in box_list:
                 box_item.pos = box_item.pos - vector(self.key_shift * self.box_eenheid, self.box_eenheid, 0)
+            for box_item_pos_blok in box_list_positionerings_blok:
+                box_item_pos_blok.pos = box_item_pos_blok.pos - vector(self.key_shift * self.box_eenheid, 0, 0)
             blok_raakt_bodem_list = self.blok_raakt_bodem(box_list)
             if len(blok_raakt_bodem_list) != 0:
                 # update bodemhoogtes
@@ -44,6 +50,12 @@ class Wetrix2D(object):
                 # plaats nieuw startblok
                 start_blok = self.random_kies_blok()
                 box_list = self.toon_blok(start_blok, (self.scene.width / 2, self.scene.height))
+                for box_item_pos_blok in box_list_positionerings_blok:
+                    box_item_pos_blok.visible = False
+                    del box_item_pos_blok
+                positionerings_blok = BalkPlat(kleur=color.yellow, breedte=start_blok.breedte, hoogte=1)
+                box_list_positionerings_blok = self.toon_blok(positionerings_blok, (
+                np.min([box_i.pos.x for box_i in box_list]), -1 * self.box_eenheid))
 
             self.key_shift = 0
 
@@ -76,7 +88,7 @@ class Wetrix2D(object):
                 color=color.white)
 
     def toon_blok(self, blok_object, scherm_positie):
-        assert 0 <= scherm_positie[0] <= self.scene.width and 0 <= scherm_positie[1] <= self.scene.height
+        # assert 0 <= scherm_positie[0] <= self.scene.width and -1 <= scherm_positie[1] <= self.scene.height
         x_shift, y_shift = self.bereken_verplaatsing(scherm_positie, blok_object)
         box_list = []
         for pos in blok_object.posities:
@@ -85,6 +97,9 @@ class Wetrix2D(object):
                                 length=self.box_eenheid, height=self.box_eenheid, width=1, color=blok_object.kleur))
         blok_object.print_name()
         return box_list
+
+    def toon_positioneringshulp(self, vallende_blok_box_list):
+        pass
 
     def random_kies_blok(self):
         return random.choice(self.blokken)
@@ -116,6 +131,7 @@ class Proefbuis(object):
         assert isinstance(incremental_value, int) and incremental_value > 0
         self._current_level += incremental_value
 
+
 class Blok(object):
     """ Blok met gegeven kleur, breedte, hoogte en dikte
 
@@ -128,9 +144,30 @@ class Blok(object):
         self.breedte = breedte
         self.hoogte = hoogte
         self.dikte = dikte
+        self.hoogtes_voor_elke_x_pos = None
+
+    def bereken_hoogtes_voor_elke_x_pos(self):
+        self.hoogtes_voor_elke_x_pos = [np.sum(np.array(self.posities)[..., 0] == x_pos) for x_pos in
+                                        np.unique(np.array(self.posities)[..., 0])]
 
     def print_name(self):
         return self._print_name()
+
+
+class BalkPlat(Blok):
+    """
+    Platte balk
+    """
+
+    def __init__(self, kleur, breedte=3, hoogte=1):
+        Blok.__init__(self, kleur, breedte, hoogte)
+        self.posities = []
+        self.posities.extend([(i, j) for i in range(breedte) for j in range(self.dikte)])
+        self.posities.extend([(i, j) for i in range(self.dikte) for j in range(self.dikte, hoogte)])
+        self.bereken_hoogtes_voor_elke_x_pos()
+
+    def _print_name(self):
+        print("Platte balk")
 
 
 class L1(Blok):
@@ -143,8 +180,7 @@ class L1(Blok):
         self.posities = []
         self.posities.extend([(i, j) for i in range(breedte) for j in range(self.dikte)])
         self.posities.extend([(i, j) for i in range(self.dikte) for j in range(self.dikte, hoogte)])
-        self.hoogtes_voor_elke_x_pos = [np.sum(np.array(self.posities)[..., 0] == x_pos) for x_pos in
-                                        np.unique(np.array(self.posities)[..., 0])]
+        self.bereken_hoogtes_voor_elke_x_pos()
 
     def _print_name(self):
         print("Letter L rechtopstaand")
@@ -178,8 +214,7 @@ class L2(Blok):
         self.posities = []
         self.posities.extend([(i, j) for i in range(hoogte) for j in range(self.dikte)])
         self.posities.extend([(i, j) for i in range(hoogte - self.dikte, hoogte) for j in range(self.dikte, breedte)])
-        self.hoogtes_voor_elke_x_pos = [np.sum(np.array(self.posities)[..., 0] == x_pos) for x_pos in
-                                        np.unique(np.array(self.posities)[..., 0])]
+        self.bereken_hoogtes_voor_elke_x_pos()
 
     def _print_name(self):
         print("Letter L omgevallen naar links")
